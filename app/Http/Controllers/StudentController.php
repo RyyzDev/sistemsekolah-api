@@ -1,0 +1,315 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Models\Student;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+
+class StudentController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = Student::with(['user', 'parents', 'achievements', 'documents']);
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('registration_path')) {
+            $query->where('registration_path', $request->registration_path);
+        }
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                  ->orWhere('nik', 'like', "%{$search}%")
+                  ->orWhere('registration_number', 'like', "%{$search}%");
+            });
+        }
+
+        $students = $query->paginate($request->get('per_page', 15));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data siswa berhasil diambil',
+            'data' => $students
+        ]);
+    }
+
+    public function me(Request $request)
+    {
+        $student = Student::with(['parents', 'achievements', 'documents', 'grades'])
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$student) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data siswa tidak ditemukan',
+                'data' => null
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data siswa berhasil diambil',
+            'data' => $student
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'full_name' => 'required|string|max:255',
+            'nik' => 'required|string|size:16|unique:students,nik',
+            'no_kk' => 'required|string|size:16',
+            'gender' => 'required|in:L,P',
+            'birth_place' => 'required|string|max:255',
+            'birth_date' => 'required|date|before:today',
+            'religion' => 'required|in:islam,kristen,katolik,hindu,buddha,konghucu',
+            'address' => 'required|string',
+            'rt' => 'required|string|max:3',
+            'rw' => 'required|string|max:3',
+            'kelurahan' => 'required|string|max:255',
+            'kecamatan' => 'required|string|max:255',
+            'kabupaten_kota' => 'required|string|max:255',
+            'province' => 'required|string|max:255',
+            'postal_code' => 'required|string|size:5',
+            'registration_type' => 'required|in:baru,pindahan,kembali_bersekolah',
+            'registration_path' => 'nullable|in:domisili,prestasi,afirmasi,mutasi',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $existingStudent = Student::where('user_id', $request->user()->id)->first();
+        if ($existingStudent) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User sudah memiliki data siswa'
+            ], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            $studentData = $request->all();
+            $studentData['user_id'] = $request->user()->id;
+            $studentData['status'] = 'draft';
+            
+            $student = Student::create($studentData);
+
+            $student->registration_number = $student->generateRegistrationNumber();
+            $student->registration_date = now();
+            $student->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data siswa berhasil dibuat',
+                'data' => $student->load(['parents', 'achievements', 'documents'])
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membuat data siswa',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function show($id)
+    {
+        $student = Student::with(['user', 'parents', 'achievements', 'documents', 'grades'])
+            ->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data siswa berhasil diambil',
+            'data' => $student
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $student = Student::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        if (in_array($student->status, ['submitted', 'verified', 'accepted'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data siswa yang sudah disubmit tidak dapat diubah'
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'full_name' => 'sometimes|string|max:255',
+            'nik' => 'sometimes|string|size:16|unique:students,nik,' . $id,
+            'no_kk' => 'sometimes|string|size:16',
+            'gender' => 'sometimes|in:L,P',
+            'birth_place' => 'sometimes|string|max:255',
+            'birth_date' => 'sometimes|date|before:today',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $student->update($request->all());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data siswa berhasil diupdate',
+            'data' => $student->load(['parents', 'achievements', 'documents'])
+        ]);
+    }
+
+    public function uploadPhoto(Request $request, $id)
+    {
+        $student = Student::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $validator = Validator::make($request->all(), [
+            'photo' => 'required|image|mimes:jpeg,png,jpg|max:2048'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if ($student->photo) {
+            Storage::delete($student->photo);
+        }
+
+        $path = $request->file('photo')->store('students/photos', 'public');
+        $student->update(['photo' => $path]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Foto berhasil diupload',
+            'data' => ['photo_url' => Storage::url($path)]
+        ]);
+    }
+
+    public function submit(Request $request, $id)
+    {
+        $student = Student::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        if ($student->status !== 'draft') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data siswa sudah pernah disubmit'
+            ], 400);
+        }
+
+        if (!$student->isComplete()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data siswa belum lengkap'
+            ], 400);
+        }
+
+        $student->update(['status' => 'submitted']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data siswa berhasil disubmit',
+            'data' => $student
+        ]);
+    }
+
+    public function verify(Request $request, $id)
+    {
+        $student = Student::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:verified,rejected'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $student->update(['status' => $request->status]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Data siswa berhasil di{$request->status}",
+            'data' => $student
+        ]);
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        $student = Student::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        if ($student->status !== 'draft') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya data draft yang dapat dihapus'
+            ], 400);
+        }
+
+        if ($student->photo) {
+            Storage::delete($student->photo);
+        }
+
+        $student->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data siswa berhasil dihapus'
+        ]);
+    }
+
+    public function statistics()
+    {
+        $stats = [
+            'total' => Student::count(),
+            'draft' => Student::draft()->count(),
+            'submitted' => Student::submitted()->count(),
+            'verified' => Student::verified()->count(),
+            'accepted' => Student::accepted()->count(),
+            'by_path' => Student::select('registration_path', DB::raw('count(*) as total'))
+                ->groupBy('registration_path')->get(),
+            'by_gender' => Student::select('gender', DB::raw('count(*) as total'))
+                ->groupBy('gender')->get(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Statistik pendaftaran berhasil diambil',
+            'data' => $stats
+        ]);
+    }
+}
