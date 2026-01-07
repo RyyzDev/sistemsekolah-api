@@ -44,12 +44,14 @@ class GoogleAuthController extends Controller
             
             // Buat token untuk API
             $token = $user->createToken('google-auth-token')->plainTextToken;
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Login berhasil',
+            // URL redirect frontend
+            $frontendUrl = env('FRONTEND_APPLICANT_URL');
+
+
+            return response()->view('auth.google_callback', [
+                'token' => $token,
                 'user' => $user,
-                'token' => $token
+                'frontendUrl' => $frontendUrl
             ]);
             
         } catch (\Exception $e) {

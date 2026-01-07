@@ -8,6 +8,11 @@ use App\Http\Controllers\ParentController;
 use App\Http\Controllers\AchievementController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\GradeController;
+use App\Http\Controllers\PaymentController;
+
+
+//notification midtrans (no auth)
+Route::post('payments/notification', [PaymentController::class, 'notification']);
 
 // Google OAuth Routes
 Route::prefix('auth')->group(function () {
@@ -79,4 +84,27 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{gradeId}', [GradeController::class, 'update']);
         Route::delete('/{gradeId}', [GradeController::class, 'destroy']);
     });
+
+
+    // Payment Routes
+    Route::prefix('payments')->group(function () {
+        // User Routes
+        Route::get('/', [PaymentController::class, 'index']);
+        Route::get('/{id}', [PaymentController::class, 'show']);
+        Route::post('/{id}/check-status', [PaymentController::class, 'checkStatus']);
+        Route::get('/{id}/debug-status', [PaymentController::class, 'debugStatus']);
+        Route::post('/{id}/sync-status', [PaymentController::class, 'syncStatus']);
+        Route::post('/{id}/cancel', [PaymentController::class, 'cancel']);
+        
+        // Admin Routes
+        Route::get('/summary/all', [PaymentController::class, 'summary']); // Admin only
+        Route::post('/{id}/refund', [PaymentController::class, 'refund']); // Admin only
+    });
+
+    
+});
+
+
+Route::middleware(['auth:sanctum', 'throttle:5,1'])->group(function () {
+    Route::post('/payments', [PaymentController::class, 'store']);
 });

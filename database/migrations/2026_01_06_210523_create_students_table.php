@@ -17,7 +17,7 @@ return new class extends Migration
             $table->enum('registration_type', ['baru', 'pindahan', 'kembali_bersekolah'])->default('baru');
             $table->enum('registration_path', ['domisili', 'prestasi', 'afirmasi', 'mutasi'])->nullable();
             $table->date('registration_date')->nullable();
-            $table->enum('status', ['draft', 'submitted', 'verified', 'accepted', 'rejected'])->default('draft');
+            $table->enum('status', ['draft', 'submitted', 'paid', 'verified', 'accepted', 'rejected'])->default('draft');
             
             // Data Pribadi
             $table->string('full_name');

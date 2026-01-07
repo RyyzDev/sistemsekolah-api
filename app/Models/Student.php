@@ -76,6 +76,11 @@ class Student extends Model
         return $this->hasMany(Grade::class);
     }
 
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     public function getAgeAttribute()
     {
         return $this->birth_date ? $this->birth_date->age : null;
@@ -140,5 +145,29 @@ class Student extends Model
     public function calculatePrestasiScore()
     {
         return $this->achievements()->sum('points');
+    }
+
+
+    public function hasPaidRegistrationFee()
+    {
+        return $this->payments()
+            ->where('payment_type', 'registration_fee')
+            ->whereIn('status', ['settlement', 'capture'])
+            ->exists();
+    }
+
+    public function getRegistrationPayment()
+    {
+        return $this->payments()
+            ->where('payment_type', 'registration_fee')
+            ->latest()
+            ->first();
+    }
+
+    public function getTotalPaid()
+    {
+        return $this->payments()
+            ->whereIn('status', ['settlement', 'capture'])
+            ->sum('total_amount');
     }
 }
