@@ -48,7 +48,7 @@ class GoogleAuthController extends Controller
             $frontendUrl = env('FRONTEND_APPLICANT_URL');
 
 
-            return response()->view('auth.google_callback', [
+            return response()->view('google_callback', [
                 'token' => $token,
                 'user' => $user,
                 'frontendUrl' => $frontendUrl

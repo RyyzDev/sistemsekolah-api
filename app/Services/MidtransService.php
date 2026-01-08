@@ -74,8 +74,9 @@ class MidtransService
         ];
 
         try {
-            $snapToken = Snap::getSnapToken($params);
-            $snapUrl = Snap::createTransaction($params)->redirect_url;
+            $midtransResponse = Snap::createTransaction($params);
+            $snapToken = $midtransResponse->token;
+            $snapUrl = $midtransResponse->redirect_url;
 
             $payment->update([
                 'snap_token' => $snapToken,
@@ -191,20 +192,27 @@ class MidtransService
 
         // Update student status if payment successful
         if (in_array($updateData['status'], ['settlement', 'capture'])) {
-            $payment->student->update(['status' => 'accepted']);
+            $payment->student->update(['status' => 'paid']);
         }
     }
 
+    
     /**
-     * Check payment status from Midtrans
+     *  Sinkronisasi data lokal dengan status asli di server Midtrans
      */
-    public function checkStatus($orderId)
+    public function syncPaymentWithMidtrans(Payment $payment)
     {
         try {
-            $status = Transaction::status($orderId);
-            return $status;
+            $status = Transaction::status($payment->order_id);
+            // konversi object $status menjadi notification-like object agar kompatibel
+            $this->updatePaymentStatus($payment, $status->transaction_status, $status->fraud_status ?? null, $status);
+            // Muat ulang data terbaru dari database
+            $payment->refresh();
+
+            return $payment;
         } catch (\Exception $e) {
-            throw new \Exception('Failed to check payment status: ' . $e->getMessage());
+            \Log::error('Sync Error: ' . $e->getMessage());
+            throw $e;
         }
     }
 

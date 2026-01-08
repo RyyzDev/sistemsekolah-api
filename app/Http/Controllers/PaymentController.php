@@ -183,7 +183,7 @@ class PaymentController extends Controller
 
         try {
             // Get status from Midtrans
-            $status = $this->midtransService->checkStatus($payment->order_id);
+            $status = $this->midtransService->syncPaymentWithMidtrans($payment->order_id);
 
             \Log::info('Midtrans Status Response:', (array) $status);
 

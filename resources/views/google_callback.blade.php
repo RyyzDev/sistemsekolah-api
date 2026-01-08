@@ -16,7 +16,7 @@
         if (window.opener) {
             window.opener.postMessage(authData, "{{ $frontendUrl }}");
             
-            // Berikan sedikit jeda sebelum menutup window agar pesan sampai
+            // sedikit jeda sebelum menutup window agar pesan sampai
             setTimeout(() => {
                 window.close();
             }, 100);

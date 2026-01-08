@@ -11,7 +11,7 @@ use App\Http\Controllers\GradeController;
 use App\Http\Controllers\PaymentController;
 
 
-//notification midtrans (no auth)
+//webhook notification
 Route::post('payments/notification', [PaymentController::class, 'notification']);
 
 // Google OAuth Routes
@@ -92,7 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [PaymentController::class, 'index']);
         Route::get('/{id}', [PaymentController::class, 'show']);
         Route::post('/{id}/check-status', [PaymentController::class, 'checkStatus']);
-        Route::get('/{id}/debug-status', [PaymentController::class, 'debugStatus']);
+        // Route::get('/{id}/debug-status', [PaymentController::class, 'debugStatus']);
         Route::post('/{id}/sync-status', [PaymentController::class, 'syncStatus']);
         Route::post('/{id}/cancel', [PaymentController::class, 'cancel']);
         
