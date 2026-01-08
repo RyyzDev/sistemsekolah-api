@@ -1,0 +1,70 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  # JOB 1: TESTING
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, bcmath, gd, sqlite3
+          
+      - name: Install Dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Prepare Laravel Environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          
+      - name: Run Database Migrations (SQLite for Testing)
+        run: php artisan migrate --force
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
+          GOOGLE_CLIENT_ID: "dummy_key"
+          GOOGLE_CLIENT_SECRET: "dummy_key"
+          GOOGLE_REDIRECT_APPLICANT: http://xxxxxxxxx.com/api/auth/google/callback/applicant
+          FRONTEND_APPLICANT_URL: http://xxxxxxx.com/frontend
+          MIDTRANS_SERVER_KEY: "dummy_key"
+          MIDTRANS_CLIENT_KEY: "dummy_key"
+          MIDTRANS_MERCHANT_ID: "dummy_key"
+          MIDTRANS_IS_PRODUCTION: false
+          MIDTRANS_IS_SANITIZED: true
+          MIDTRANS_IS_3DS: true
+          MIDTRANS_NOTIFICATION_URL: https:xxx.ngrok.xxx/api/xxxx/xxxx
+          MIDTRANS_FINISH_URL: https://xxxxx.xxxx.xxxx/payment/finish
+
+      - name: Execute Tests
+        # Jika perintah ini gagal (error), maka Job Deploy di bawah tidak akan dijalankan
+        run: php artisan test
+
+  # JOB 2: DEPLOY (Hanya jalan jika JOB 1 sukses)
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test 
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/sistemsekolah-api
+            git pull origin main
+            composer install --no-interaction --optimize-autoloader
+            php artisan migrate --force
+            php artisan optimize
+            php artisan cache:clear
+            php artisan route:clear
+            php artisan view:clear
