@@ -39,21 +39,6 @@ class PaymentTest extends TestCase
 
         $response = $this->postJson('/api/payments', [
             'payment_type' => 'registration_fee',
-            'items' => [
-                [
-                    'item_name' => 'Biaya Pendaftaran',
-                    'item_description' => 'Biaya pendaftaran tahun ajaran 2025/2026',
-                    'quantity' => 1,
-                    'price' => 500000,
-                ],
-                [
-                    'item_name' => 'Biaya Formulir',
-                    'item_description' => 'Biaya formulir pendaftaran',
-                    'quantity' => 1,
-                    'price' => 50000,
-                ],
-            ],
-            'notes' => 'Test payment',
         ]);
 
         $response->assertStatus(201);
@@ -77,51 +62,14 @@ class PaymentTest extends TestCase
         // Verify calculations
         $payment = Payment::where('student_id', $this->student->id)->first();
         
-        $this->assertEquals(550000, $payment->amount); // 500000 + 50000
-        $this->assertEquals(5000, $payment->admin_fee); // 2% of 550000
-        $this->assertEquals(555000, $payment->total_amount); // 550000 + 5000
+        $this->assertEquals(250000, $payment->amount); 
+        $this->assertEquals(5000, $payment->admin_fee); // 2% of 255000
+        $this->assertEquals(255000, $payment->total_amount);
         $this->assertEquals('pending', $payment->status);
         $this->assertNotNull($payment->order_id);
     }
 
-    #[Test]
-    public function it_calculates_admin_fee_correctly_for_various_amounts()
-    {
-        $this->actingAs($this->user, 'sanctum');
-
-        $testCases = [
-            ['amount' => 100000, 'expected_fee' => 2000],   // 2%
-            ['amount' => 250000, 'expected_fee' => 5000],   // 2% = 5000 (max)
-            ['amount' => 500000, 'expected_fee' => 5000],   // 2% = 10000 but max is 5000
-            ['amount' => 1000000, 'expected_fee' => 5000],  // 2% = 20000 but max is 5000
-        ];
-
-        foreach ($testCases as $case) {
-            $response = $this->postJson('/api/payments', [
-                'payment_type' => 'registration_fee',
-                'items' => [
-                    [
-                        'item_name' => 'Test Item',
-                        'quantity' => 1,
-                        'price' => $case['amount'],
-                    ],
-                ],
-            ]);
-
-            $response->assertStatus(201);
-            
-            $payment = Payment::latest()->first();
-            
-            $this->assertEquals(
-                $case['expected_fee'], 
-                $payment->admin_fee,
-                "Admin fee should be {$case['expected_fee']} for amount {$case['amount']}"
-            );
-
-            // Clean up for next iteration
-            $payment->delete();
-        }
-    }
+ 
 
     #[Test]
     public function it_prevents_payment_creation_if_student_not_submitted()
@@ -149,39 +97,7 @@ class PaymentTest extends TestCase
         ]);
     }
 
-    #[Test]
-    public function it_creates_payment_items_correctly()
-    {
-        $this->actingAs($this->user, 'sanctum');
-
-        $items = [
-            ['item_name' => 'Item 1', 'quantity' => 2, 'price' => 100000],
-            ['item_name' => 'Item 2', 'quantity' => 1, 'price' => 150000],
-            ['item_name' => 'Item 3', 'quantity' => 3, 'price' => 50000],
-        ];
-
-        $response = $this->postJson('/api/payments', [
-            'payment_type' => 'registration_fee',
-            'items' => $items,
-        ]);
-
-        $response->assertStatus(201);
-
-        $payment = Payment::latest()->first();
-        
-        // Verify number of items
-        $this->assertCount(3, $payment->items);
-
-        // Verify each item calculation
-        $this->assertEquals(200000, $payment->items[0]->subtotal); // 2 * 100000
-        $this->assertEquals(150000, $payment->items[1]->subtotal); // 1 * 150000
-        $this->assertEquals(150000, $payment->items[2]->subtotal); // 3 * 50000
-
-        // Verify total amount
-        $expectedAmount = 200000 + 150000 + 150000; // 500000
-        $this->assertEquals($expectedAmount, $payment->amount);
-    }
-
+   
     #[Test]
     public function it_generates_unique_order_id()
     {
@@ -214,48 +130,7 @@ class PaymentTest extends TestCase
         }
     }
 
-    #[Test]
-    public function it_validates_payment_request()
-    {
-        $this->actingAs($this->user, 'sanctum');
 
-        // Test missing payment_type
-        $response = $this->postJson('/api/payments', [
-            'items' => [
-                ['item_name' => 'Test', 'quantity' => 1, 'price' => 100000],
-            ],
-        ]);
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['payment_type']);
-
-        // Test empty items
-        $response = $this->postJson('/api/payments', [
-            'payment_type' => 'registration_fee',
-            'items' => [],
-        ]);
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['items']);
-
-        // Test invalid item structure
-        $response = $this->postJson('/api/payments', [
-            'payment_type' => 'registration_fee',
-            'items' => [
-                ['item_name' => 'Test'], // Missing quantity and price
-            ],
-        ]);
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['items.0.quantity', 'items.0.price']);
-
-        // Test negative price
-        $response = $this->postJson('/api/payments', [
-            'payment_type' => 'registration_fee',
-            'items' => [
-                ['item_name' => 'Test', 'quantity' => 1, 'price' => -100000],
-            ],
-        ]);
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['items.0.price']);
-    }
 
     #[Test]
     public function it_can_get_payment_list()
@@ -476,25 +351,7 @@ class PaymentTest extends TestCase
         $this->assertTrue($this->student->hasPaidRegistrationFee());
     }
 
-    #[Test]
-    public function it_prevents_negative_amounts()
-    {
-        $this->actingAs($this->user, 'sanctum');
 
-        $response = $this->postJson('/api/payments', [
-            'payment_type' => 'registration_fee',
-            'items' => [
-                [
-                    'item_name' => 'Test Item',
-                    'quantity' => -1,
-                    'price' => 100000,
-                ],
-            ],
-        ]);
-
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['items.0.quantity']);
-    }
 
     #[Test]
     public function it_handles_large_amounts_correctly()

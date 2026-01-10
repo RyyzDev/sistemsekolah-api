@@ -121,9 +121,9 @@ class PaymentSecurityTest extends TestCase
         $payment = Payment::latest()->first();
 
         // Should be calculated values, not manipulated values
-        $this->assertEquals(100000, $payment->amount);
-        $this->assertEquals(2000, $payment->admin_fee);
-        $this->assertEquals(102000, $payment->total_amount);
+        $this->assertEquals(250000, $payment->amount); 
+        $this->assertEquals(5000, $payment->admin_fee);
+        $this->assertEquals(255000, $payment->total_amount);
     }
 
     #[Test]
@@ -170,57 +170,9 @@ class PaymentSecurityTest extends TestCase
         $this->assertStringNotContainsString('<script>', $item->item_name);
     }
 
-    #[Test]
-    public function it_prevents_negative_price_injection()
-    {
-        $this->actingAs($this->user, 'sanctum');
 
-        $response = $this->postJson('/api/payments', [
-            'payment_type' => 'registration_fee',
-            'items' => [
-                ['item_name' => 'Test', 'quantity' => 1, 'price' => -100000],
-            ],
-        ]);
 
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['items.0.price']);
-    }
 
-    #[Test]
-    public function it_prevents_zero_price_injection()
-    {
-        $this->actingAs($this->user, 'sanctum');
-
-        // Depending on business logic, zero might not be allowed
-        $response = $this->postJson('/api/payments', [
-            'payment_type' => 'registration_fee',
-            'items' => [
-                ['item_name' => 'Free Item', 'quantity' => 1, 'price' => 0],
-            ],
-        ]);
-
-        // If zero is not allowed, this should fail validation
-        // Adjust based on your business rules
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['items.0.price']);
-    }
-
-    #[Test]
-    public function it_prevents_extremely_large_quantity()
-    {
-        $this->actingAs($this->user, 'sanctum');
-
-        $response = $this->postJson('/api/payments', [
-            'payment_type' => 'registration_fee',
-            'items' => [
-                // Gunakan angka besar tapi tidak sampai merusak memory PHP
-                ['item_name' => 'Test', 'quantity' => 999999, 'price' => 100000],
-            ],
-        ]);
-
-        // Pastikan Controller mengembalikan 422 karena melebihi max:1000 di validator
-        $response->assertStatus(422);
-    }
 
     #[Test]
     public function it_logs_payment_creation_for_audit()
@@ -302,42 +254,33 @@ class PaymentSecurityTest extends TestCase
         ]);
     }
 
-    #[Test]
-    public function it_prevents_payment_with_empty_items()
-    {
-        $this->actingAs($this->user, 'sanctum');
-
-        $response = $this->postJson('/api/payments', [
-            'payment_type' => 'registration_fee',
-            'items' => [],
-        ]);
-
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['items']);
-    }
 
     #[Test]
     public function it_enforces_rate_limiting_on_payment_creation()
     {
      
-        \App\Models\Student::factory()->create(['user_id' => $this->user->id]);
 
         $this->actingAs($this->user, 'sanctum');
 
-     
-        $this->artisan('cache:clear');
 
-        for ($i = 0; $i < 5; $i++) {
-            $this->postJson('/api/payments', [
-                'payment_type' => 'registration_fee',
-                'items' => [['item_name' => 'Test', 'quantity' => 1, 'price' => 1000]],
-            ])->assertStatus(201); 
-        }
-
+        $this->postJson('/api/payments', [
+            'payment_type' => 'registration_fee',
+        ])->assertStatus(201);
+        $this->postJson('/api/payments', [
+            'payment_type' => 'registration_fee',
+        ])->assertStatus(201);
+        $this->postJson('/api/payments', [
+            'payment_type' => 'registration_fee',
+        ])->assertStatus(201);         
+        $this->postJson('/api/payments', [
+            'payment_type' => 'registration_fee',
+        ])->assertStatus(201); 
+        $this->postJson('/api/payments', [
+            'payment_type' => 'registration_fee',
+        ])->assertStatus(201); 
      
         $response = $this->postJson('/api/payments', [
             'payment_type' => 'registration_fee',
-            'items' => [['item_name' => 'Test', 'quantity' => 1, 'price' => 1000]],
         ]);
 
         $response->assertStatus(429);

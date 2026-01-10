@@ -10,6 +10,7 @@ use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\StorePaymentRequest;
 
 class PaymentController extends Controller
 {
@@ -46,41 +47,33 @@ class PaymentController extends Controller
         ]);
     }
 
-    /**
+    /** 
      * Create new payment
      */
-    public function store(Request $request)
+    public function store(StorePaymentRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'payment_type' => 'required|in:registration_fee,tuition_fee,uniform_fee,book_fee,other',
-            'items' => 'required|array|min:1',
-            'items.*.item_name' => 'required|string|max:255',
-            'items.*.item_description' => 'nullable|string|max:500',
-            'items.*.quantity' => 'required|integer|min:1|max:100',
-            'items.*.price' => 'required|numeric|min:1|max:100000000',
-            'notes' => 'nullable|string|max:1000',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Sanitasi item_name agar bersih dari tag <script>
-        $items = collect($request->items)->map(function ($item) {
-            return [
-                'item_name' => strip_tags($item['item_name']),
-                'item_description' => strip_tags($item['item_description'] ?? ''),
-                'quantity' => $item['quantity'],
-                'price' => $item['price'],
-                'subtotal' => $item['quantity'] * $item['price'],
-            ];
-        });
+        $request->validated();
 
 
+        // Pencegahan Manipulasi Harga
+         if ($request->payment_type === 'registration_fee') {
+                $registrationItems = [
+                    [
+                        'item_name' => 'Biaya Formulir',
+                        'quantity' => 1,
+                        'price' => 100000,
+                    ],
+                    [
+                        'item_name' => 'Biaya Tes Masuk',
+                        'quantity' => 1,
+                        'price' => 150000,
+                    ]
+                ];
+
+             $request->merge(['items' => $registrationItems]);
+          }
+        
+ 
 
         $student = Student::where('user_id', $request->user()->id)->first();
 
@@ -102,9 +95,7 @@ class PaymentController extends Controller
         DB::beginTransaction();
         try {
             // Calculate total amount
-            $amount = collect($request->items)->sum(function ($item) {
-                return $item['quantity'] * $item['price'];
-            });
+            $amount = collect($request->items)->sum(fn($item) => $item['price'] * $item['quantity']);
 
             $adminFee = $this->calculateAdminFee($amount);
             $totalAmount = round($amount + $adminFee, 2);
@@ -121,18 +112,18 @@ class PaymentController extends Controller
                 'admin_fee' => $adminFee,
                 'total_amount' => $totalAmount,
                 'status' => 'pending',
-                'notes' => $request->notes,
             ]);
             $payment->save();
 
             // Create payment items
-            foreach ($items as $item) {
+            foreach ($request->items as $item) {
                 PaymentItem::create([
                     'payment_id' => $payment->id,
                     'item_name' => $item['item_name'],
                     'item_description' => $item['item_description'] ?? null,
                     'quantity' => $item['quantity'],
                     'price' => $item['price'],
+                    'subtotal' => $item['quantity'] * $item['price'],
                 ]);
             }
 

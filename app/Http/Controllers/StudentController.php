@@ -65,13 +65,14 @@ class StudentController extends Controller
 
     public function store(StoreStudentRequest $request)
     {
-        $validator = $request->validated();
+        $validated = $request->validated();
 
         DB::beginTransaction();
         try {
-            $studentData = $request->all();
-            $studentData['user_id'] = $request->user()->id;
-            $studentData['status'] = 'draft';
+            $student = Student::create(array_merge($validated, [
+                'user_id' => $request->user()->id,
+                'status'  => 'draft',
+              ]));
             
             $student = Student::create($studentData);
 
