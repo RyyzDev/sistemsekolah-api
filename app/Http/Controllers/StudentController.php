@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\StoreStudentRequest;
 
 class StudentController extends Controller
 {
@@ -62,43 +63,9 @@ class StudentController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreStudentRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'full_name' => 'required|string|max:255',
-            'nik' => 'required|string|size:16|unique:students,nik',
-            'no_kk' => 'required|string|size:16',
-            'gender' => 'required|in:L,P',
-            'birth_place' => 'required|string|max:255',
-            'birth_date' => 'required|date|before:today',
-            'religion' => 'required|in:islam,kristen,katolik,hindu,buddha,konghucu',
-            'address' => 'required|string',
-            'rt' => 'required|string|max:3',
-            'rw' => 'required|string|max:3',
-            'kelurahan' => 'required|string|max:255',
-            'kecamatan' => 'required|string|max:255',
-            'kabupaten_kota' => 'required|string|max:255',
-            'province' => 'required|string|max:255',
-            'postal_code' => 'required|string|size:5',
-            'registration_type' => 'required|in:baru,pindahan,kembali_bersekolah',
-            'registration_path' => 'nullable|in:domisili,prestasi,afirmasi,mutasi',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $existingStudent = Student::where('user_id', $request->user()->id)->first();
-        if ($existingStudent) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User sudah memiliki data siswa'
-            ], 400);
-        }
+        $validator = $request->validated();
 
         DB::beginTransaction();
         try {
@@ -142,7 +109,7 @@ class StudentController extends Controller
         ]);
     }
 
-    public function update(Request $request, $id)
+    public function update(StoreStudentRequest $request, $id)
     {
         $student = Student::where('id', $id)
             ->where('user_id', $request->user()->id)
@@ -155,14 +122,7 @@ class StudentController extends Controller
             ], 400);
         }
 
-        $validator = Validator::make($request->all(), [
-            'full_name' => 'sometimes|string|max:255',
-            'nik' => 'sometimes|string|size:16|unique:students,nik,' . $id,
-            'no_kk' => 'sometimes|string|size:16',
-            'gender' => 'sometimes|in:L,P',
-            'birth_place' => 'sometimes|string|max:255',
-            'birth_date' => 'sometimes|date|before:today',
-        ]);
+        $validator = $request->validated();
 
         if ($validator->fails()) {
             return response()->json([

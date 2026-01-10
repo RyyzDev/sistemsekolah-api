@@ -108,3 +108,15 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'throttle:5,1'])->group(function () {
     Route::post('/payments', [PaymentController::class, 'store']);
 });
+
+
+Route::get('/test-curl', function () {
+    $ch = curl_init("https://api.sandbox.midtrans.com/v2/status");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($ch);
+    if(curl_errno($ch)){
+        return 'Curl error: ' . curl_error($ch);
+    }
+    curl_close($ch);
+    return 'Koneksi Berhasil!';
+});

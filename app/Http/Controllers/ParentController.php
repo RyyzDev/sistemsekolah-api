@@ -50,6 +50,7 @@ class ParentController extends Controller
             'occupation_category' => 'nullable|in:tidak_bekerja,pns,tni_polri,guru_dosen,pegawai_swasta,wiraswasta,petani,nelayan,buruh,pensiunan,lainnya',
             'monthly_income' => 'nullable|numeric|min:0',
             'living_status' => 'required|in:hidup,meninggal',
+            'phone_number' => 'required|string|max:15',
         ]);
 
         if ($validator->fails()) {

@@ -209,7 +209,7 @@ class MidtransService
             // Muat ulang data terbaru dari database
             $payment->refresh();
 
-            return $payment;
+            return $status;
         } catch (\Exception $e) {
             \Log::error('Sync Error: ' . $e->getMessage());
             throw $e;
