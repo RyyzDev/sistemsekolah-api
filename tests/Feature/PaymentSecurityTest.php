@@ -319,16 +319,27 @@ class PaymentSecurityTest extends TestCase
     #[Test]
     public function it_enforces_rate_limiting_on_payment_creation()
     {
-        
+     
+        \App\Models\Student::factory()->create(['user_id' => $this->user->id]);
+
         $this->actingAs($this->user, 'sanctum');
 
-        for ($i = 0; $i < 11; $i++) {
-            $response = $this->postJson('/api/payments', [
+     
+        $this->artisan('cache:clear');
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/payments', [
                 'payment_type' => 'registration_fee',
                 'items' => [['item_name' => 'Test', 'quantity' => 1, 'price' => 1000]],
-            ]);
+            ])->assertStatus(201); 
         }
 
-        $response->assertStatus(429); // Too Many Requests
+     
+        $response = $this->postJson('/api/payments', [
+            'payment_type' => 'registration_fee',
+            'items' => [['item_name' => 'Test', 'quantity' => 1, 'price' => 1000]],
+        ]);
+
+        $response->assertStatus(429);
     }
 }
