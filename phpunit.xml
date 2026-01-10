@@ -33,6 +33,9 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="GOOGLE_CLIENT_ID" value="dummy"/>
+        <env name="GOOGLE_CLIENT_SECRET" value="dummy"/>
+        <env name="GOOGLE_REDIRECT_APPLICANT" value="http://localhost/callback"/>
         <env name="MIDTRANS_SERVER_KEY" value="dummy_server_key"/>
         <env name="MIDTRANS_CLIENT_KEY" value="dummy_client_key"/>
         <env name="MIDTRANS_IS_PRODUCTION" value="false"/>
