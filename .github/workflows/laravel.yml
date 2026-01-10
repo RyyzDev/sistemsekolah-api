@@ -27,28 +27,15 @@ jobs:
           php artisan key:generate
           
       - name: Run Database Migrations (SQLite for Testing)
-        run: php artisan migrate --force
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: ":memory:"
-          GOOGLE_CLIENT_ID: "dummy_key"
-          GOOGLE_CLIENT_SECRET: "dummy_key"
-          GOOGLE_REDIRECT_APPLICANT: http://xxxxxxxxx.com/api/auth/google/callback/applicant
-          FRONTEND_APPLICANT_URL: http://xxxxxxx.com/frontend
-          MIDTRANS_SERVER_KEY: "dummy_key"
-          MIDTRANS_CLIENT_KEY: "dummy_key"
-          MIDTRANS_MERCHANT_ID: "dummy_key"
-          MIDTRANS_IS_PRODUCTION: false
-          MIDTRANS_IS_SANITIZED: true
-          MIDTRANS_IS_3DS: true
-          MIDTRANS_NOTIFICATION_URL: https:xxx.ngrok.xxx/api/xxxx/xxxx
-          MIDTRANS_FINISH_URL: https://xxxxx.xxxx.xxxx/payment/finish
+        run: php artisan migrate --force
 
       - name: Execute Tests
-        # Jika perintah ini gagal (error), maka Job Deploy di bawah tidak akan dijalankan
         run: php artisan test
 
-  # JOB 2: DEPLOY (Hanya jalan jika JOB 1 sukses)
+  # JOB 2: DEPLOY
   deploy:
     runs-on: ubuntu-latest
     needs: test 
