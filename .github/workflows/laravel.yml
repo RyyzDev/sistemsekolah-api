@@ -54,6 +54,7 @@ jobs:
           path: storage/logs/laravel.log
 
   deploy:
+    runs-on: ubuntu-latest
     needs: test
     steps:
       - name: Deploy via SSH
