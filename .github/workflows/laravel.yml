@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
         DB_CONNECTION: sqlite
-        DB_DATABASE: ":memory:"
+        DB_DATABASE: database/database.sqlite
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -28,6 +28,9 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+
+      - name: Prepare SQLite File
+        run: touch database/database.sqlite
           
       - name: Run Database Migrations
         run: php artisan migrate --force
