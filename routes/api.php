@@ -35,14 +35,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Student Routes
     Route::prefix('students')->group(function () {
         Route::get('/', [StudentController::class, 'index']); // Admin only
+        Route::get('/statistics', [StudentController::class, 'statistics']); // Admin only
+        Route::post('/{id}/verify', [StudentController::class, 'verify']); // Admin only
         Route::get('/me', [StudentController::class, 'me']); // Current user's student data
         Route::post('/', [StudentController::class, 'store']);
-        Route::get('/statistics', [StudentController::class, 'statistics']); // Admin only
         Route::get('/{id}', [StudentController::class, 'show']);
         Route::put('/{id}', [StudentController::class, 'update']);
         Route::post('/{id}/photo', [StudentController::class, 'uploadPhoto']);
         Route::post('/{id}/submit', [StudentController::class, 'submit']);
-        Route::post('/{id}/verify', [StudentController::class, 'verify']); // Admin only
         Route::delete('/{id}', [StudentController::class, 'destroy']);
     });
 
