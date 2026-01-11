@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Requests\StoreStudentRequest;
+use App\Http\Resources\StudentResource;
+use App\Http\Resources\StudentDetailResource;
 
 class StudentController extends Controller
 {
@@ -33,13 +35,15 @@ class StudentController extends Controller
             });
         }
 
-        $students = $query->paginate($request->get('per_page', 15));
+        $students = $query->paginate($request->get('per_page', 10));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Data siswa berhasil diambil',
-            'data' => $students
-        ]);
+        return StudentResource::collection($students)
+            ->additional([
+                'success' => true,
+                'message' => 'Data siswa berhasil diambil',
+            ])
+            ->response()
+            ->setStatusCode(200);
     }
 
     public function me(Request $request)
@@ -56,11 +60,13 @@ class StudentController extends Controller
             ], 404);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Data siswa berhasil diambil',
-            'data' => $student
-        ]);
+        return StudentResource::collection($students)
+            ->additional([
+                'success' => true,
+                'message' => 'Data siswa berhasil diambil',
+            ])
+            ->response()
+            ->setStatusCode(200);
     }
 
     public function store(StoreStudentRequest $request)
@@ -82,18 +88,19 @@ class StudentController extends Controller
 
             DB::commit();
 
-            return response()->json([
+            return StudentDetailResource::collection($student)
+            ->additional([
                 'success' => true,
                 'message' => 'Data siswa berhasil dibuat',
-                'data' => $student->load(['parents', 'achievements', 'documents'])
-            ], 201);
+            ])
+            ->response()
+            ->setStatusCode(201);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal membuat data siswa',
-                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -103,11 +110,13 @@ class StudentController extends Controller
         $student = Student::with(['user', 'parents', 'achievements', 'documents', 'grades'])
             ->findOrFail($id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Data siswa berhasil diambil',
-            'data' => $student
-        ]);
+        return StudentDetailResource::collection($student)
+            ->additional([
+                'success' => true,
+                'message' => 'Data siswa berhasil diambil',
+            ])
+            ->response()
+            ->setStatusCode(200);
     }
 
     public function update(StoreStudentRequest $request, $id)
@@ -116,7 +125,7 @@ class StudentController extends Controller
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
-        if (in_array($student->status, ['submitted', 'verified', 'accepted'])) {
+        if (in_array($student->status, ['submitted', 'paid', 'verified', 'accepted'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Data siswa yang sudah disubmit tidak dapat diubah'
@@ -135,11 +144,13 @@ class StudentController extends Controller
 
         $student->update($request->all());
 
-        return response()->json([
+        return StudentResource::collection($student)
+        ->additional([
             'success' => true,
             'message' => 'Data siswa berhasil diupdate',
-            'data' => $student->load(['parents', 'achievements', 'documents'])
-        ]);
+        ])
+        ->response()
+        ->setStatusCode(200);
     }
 
     public function uploadPhoto(Request $request, $id)
@@ -196,11 +207,13 @@ class StudentController extends Controller
 
         $student->update(['status' => 'submitted']);
 
-        return response()->json([
+        return StudentResource::collection($student)
+        ->additional([
             'success' => true,
-            'message' => 'Data siswa berhasil disubmit',
-            'data' => $student
-        ]);
+            'message' => 'Data siswa berhasil disubmit!',
+        ])
+        ->response()
+        ->setStatusCode(200);
     }
 
     public function verify(Request $request, $id)
@@ -208,7 +221,7 @@ class StudentController extends Controller
         $student = Student::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'status' => 'required|in:verified,rejected'
+            'status' => 'required|in:verified,accepted,rejected'
         ]);
 
         if ($validator->fails()) {
@@ -221,11 +234,14 @@ class StudentController extends Controller
 
         $student->update(['status' => $request->status]);
 
-        return response()->json([
+
+        return StudentResource::collection($student)
+        ->additional([
             'success' => true,
-            'message' => "Data siswa berhasil di{$request->status}",
-            'data' => $student
-        ]);
+            'message' => "Data siswa berhasil di {$request->status}",
+        ])
+        ->response()
+        ->setStatusCode(200);
     }
 
     public function destroy(Request $request, $id)

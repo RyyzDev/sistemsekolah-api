@@ -22,10 +22,10 @@ class StudentDetailResource extends JsonResource
             'photo' => $this->photo,
 
             // // Relationships
-            // 'user' => new UserResource($this->whenLoaded('user')),
-            // 'parents' => ParentResource::collection($this->whenLoaded('parents')),
-            // 'achievements' => AchievementResource::collection($this->whenLoaded('achievements')),
-            // 'documents' => DocumentResource::collection($this->whenLoaded('documents')),
+            'user' => new UserResource($this->whenLoaded('user')),
+            'parents' => ParentResource::collection($this->whenLoaded('parents')),
+            'achievements' => AchievementResource::collection($this->whenLoaded('achievements')),
+            'documents' => DocumentResource::collection($this->whenLoaded('documents')),
         ];
     }
 }
