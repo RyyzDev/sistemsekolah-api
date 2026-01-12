@@ -15,7 +15,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          fingerprint: "qUA9dqfFxy9NFGLz+Eo3UUqlu0w5NrCJ+bXrxuzLG48"
+          fingerprint: ""
           script: |
             cd ~/www/sistemsekolah-api
             git pull origin main
