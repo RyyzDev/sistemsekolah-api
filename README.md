@@ -1,59 +1,111 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 📚 Petunjuk Instalasi
+Selamat datang di API Sistem Sekolah! Dokumen ini memandu Anda untuk menjalankan aplikasi web ini di PC lokal masing-masing.
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+#### Warning: Proyek ini dibangun menggunakan Laravel 12 (versi terbaru), sehingga diperlukan versi PHP dan dependensi yang sesuai.
 
-## About Laravel
+# ⚙️ Pra-Syarat (Dependencies Wajib)
+Pastikan Anda telah menginstal perangkat lunak berikut pada sistem operasi Anda (Windows, macOS, atau Linux):
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+<table class="tg"><thead>
+  <tr>
+    <th class="tg-c3ow">Perangkat Lunak</th>
+    <th class="tg-c3ow">Versi Minimal</th>
+  </tr></thead>
+<tbody>
+  <tr>
+    <td class="tg-0pky">PHP</td>
+    <td class="tg-0pky">8.4 atau lebih tinggi</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">Composer</td>
+    <td class="tg-0pky">Versi terbaru</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">Git</td>
+    <td class="tg-0pky">Versi terbaru</td>
+    <td class="tg-0pky">Sistem kontrol versi untuk mengunduh kode dari GitHub</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">Database</td>
+    <td class="tg-0pky">SQLite</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">Terminal</td>
+    <td class="tg-0pky">Git Bash / Windows Terminal</td>
+  </tr>
+</tbody></table>
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-## Learning Laravel
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+# 🚀 Instalasi Cepat
+## 1. Instalasi Perangkat Lunak
+### Untuk Windows:
+#### Instal Laragon atau XAMPP → Ini akan menginstal PHP, MySQL, dan Apache/Nginx sekaligus.<br/>
+Kunjungi <a href="https://www.apachefriends.org/download.html">XAMPP</a> untuk menginstal XAMPP.<br/>
+Kunjungi <a href="https://getcomposer.org">getcomposer.org</a> untuk menginstal Composer.<br/>
+Kunjungi <a href="https://git-scm.com">git-scm.com</a> untuk menginstal Git.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Untuk MAC:
+#### Gunakan Homebrew atau instal Herd untuk setup lingkungan pengembangan modern.<br/>
+Kunjungi <a href="https://www.apachefriends.org/download.html">XAMPP</a> untuk menginstal XAMPP.<br/>
+Kunjungi <a href="https://getcomposer.org">getcomposer.org</a> untuk menginstal Composer.<br/>
+Kunjungi <a href="https://git-scm.com">git-scm.com</a> untuk menginstal Git.
 
-## Laravel Sponsors
+### Untuk Linux:
+#### Gunakan APT atau package manager Anda.<br/>
+Kunjungi <a href="https://getcomposer.org">getcomposer.org</a> untuk menginstal Composer.<br/>
+Kunjungi <a href="https://git-scm.com">git-scm.com</a> untuk menginstal Git.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 2. Clone Repository
+#### Buka Terminal
+### Clone repositori
+```typescript
+git clone https://github.com/RyyzDev/sistemsekolah-api.git
+```
+### Masuk ke folder proyek
+```typescript 
+cd sistemsekolah-api
+```
+## 3. Setup Proyek Laravel
+### A. Instalasi Dependensi PHP
+```typescript 
+composer install
+```
+### B. Konfigurasi Environment File
+```typescript 
+cp .env.example .env
+```
+### C. Generate Application Key
+```typescript 
+php artisan key:generate
+```
+### D. Buat database
+```typescript 
+type nul > database/database.sqlite // untuk windows
 
-### Premium Partners
+touch database/database.sqlite // untuk linux
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 4. Menjalankan Aplikasi
+### Jalankan Migrasi Database
+```typescript
+php artisan migrate
+```
+### Jalankan Server Lokal Laravel
+```typescript
+php artisan serve
+```
+## 5. Akses Aplikasi
+### Buka browser Anda dan kunjungi:
 
-## Contributing
+### <a href="http://127.0.0.1:8000">http://127.0.0.1:8000</a>
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## ✅ Selesai!
+Aplikasi Laravel Anda sekarang berjalan. Jika ada masalah, pastikan versi PHP dan dependensi lainnya sesuai dengan persyaratan Laravel 12.
 
-## Code of Conduct
+## 💬 Pertanyaan atau Masalah?
+Jika mengalami kesulitan, hubungi saya!.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# Happy Coding! 🎉
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
