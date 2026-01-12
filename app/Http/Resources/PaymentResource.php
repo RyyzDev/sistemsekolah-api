@@ -29,18 +29,18 @@ class PaymentResource extends JsonResource
             
             // Snap Info
             'snap_token' => $this->snap_token,
-            'snap_url' => $this->snap_url,
+            // 'snap_url' => $this->snap_url,
             
             // Dates
             'paid_at' => $this->paid_at,
-            'expired_at' => $this->expired_at,
+            // 'expired_at' => $this->expired_at,
             
             // JSON Data 
-            'midtrans_response' => $this->midtrans_response,
+            // 'midtrans_response' => $this->midtrans_response,
             
-            'notes' => $this->notes,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            // 'notes' => $this->notes,
+            'created_at' => $this->created_at->format('d-m-Y H:i'),
+            'updated_at' => $this->updated_at->format('d-m-Y H:i'),
 
             // RELATIONSHIPS
             'items' => PaymentItemResource::collection($this->whenLoaded('items')),

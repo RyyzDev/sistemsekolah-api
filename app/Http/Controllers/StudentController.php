@@ -35,7 +35,7 @@ class StudentController extends Controller
             });
         }
 
-        $students = $query->paginate($request->get('per_page', 10));
+        $students = $query->paginate($request->get('per_page', 15));
 
         return StudentResource::collection($students)
             ->additional([
@@ -44,6 +44,7 @@ class StudentController extends Controller
             ])
             ->response()
             ->setStatusCode(200);
+    
     }
 
     public function me(Request $request)
@@ -56,11 +57,12 @@ class StudentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Data siswa tidak ditemukan',
-                'data' => null
+                'data'    => null
             ], 404);
         }
 
-        return StudentResource::collection($students)
+
+        return (new StudentDetailResource($student))
             ->additional([
                 'success' => true,
                 'message' => 'Data siswa berhasil diambil',
@@ -75,32 +77,33 @@ class StudentController extends Controller
 
         DB::beginTransaction();
         try {
+            // 1. Buat data siswa
             $student = Student::create(array_merge($validated, [
                 'user_id' => $request->user()->id,
                 'status'  => 'draft',
-              ]));
-            
-            $student = Student::create($studentData);
+            ]));
 
+            // 2. Tambahkan data otomatis
             $student->registration_number = $student->generateRegistrationNumber();
             $student->registration_date = now();
             $student->save();
 
             DB::commit();
 
-            return StudentDetailResource::collection($student)
-            ->additional([
-                'success' => true,
-                'message' => 'Data siswa berhasil dibuat',
-            ])
-            ->response()
-            ->setStatusCode(201);
+            return (new StudentDetailResource($student))
+                ->additional([
+                    'success' => true,
+                    'message' => 'Data siswa berhasil dibuat',
+                ])
+                ->response()
+                ->setStatusCode(201);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal membuat data siswa',
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
@@ -110,7 +113,7 @@ class StudentController extends Controller
         $student = Student::with(['user', 'parents', 'achievements', 'documents', 'grades'])
             ->findOrFail($id);
 
-        return StudentDetailResource::collection($student)
+        return (new StudentDetailResource($student))
             ->additional([
                 'success' => true,
                 'message' => 'Data siswa berhasil diambil',
@@ -132,25 +135,15 @@ class StudentController extends Controller
             ], 400);
         }
 
-        $validator = $request->validated();
+        $student->update($request->validated());
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $student->update($request->all());
-
-        return StudentResource::collection($student)
-        ->additional([
-            'success' => true,
-            'message' => 'Data siswa berhasil diupdate',
-        ])
-        ->response()
-        ->setStatusCode(200);
+        return (new StudentDetailResource($student))
+            ->additional([
+                'success' => true,
+                'message' => 'Data siswa berhasil diupdate',
+            ])
+            ->response()
+            ->setStatusCode(200);
     }
 
     public function uploadPhoto(Request $request, $id)
@@ -167,7 +160,7 @@ class StudentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validasi gagal',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors()
             ], 422);
         }
 
@@ -181,7 +174,7 @@ class StudentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Foto berhasil diupload',
-            'data' => ['photo_url' => Storage::url($path)]
+            'data'    => ['photo_url' => Storage::url($path)]
         ]);
     }
 
@@ -207,13 +200,13 @@ class StudentController extends Controller
 
         $student->update(['status' => 'submitted']);
 
-        return StudentResource::collection($student)
-        ->additional([
-            'success' => true,
-            'message' => 'Data siswa berhasil disubmit!',
-        ])
-        ->response()
-        ->setStatusCode(200);
+        return (new StudentDetailResource($student))
+            ->additional([
+                'success' => true,
+                'message' => 'Data siswa berhasil disubmit!',
+            ])
+            ->response()
+            ->setStatusCode(200);
     }
 
     public function verify(Request $request, $id)
@@ -228,20 +221,19 @@ class StudentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validasi gagal',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors()
             ], 422);
         }
 
         $student->update(['status' => $request->status]);
 
-
-        return StudentResource::collection($student)
-        ->additional([
-            'success' => true,
-            'message' => "Data siswa berhasil di {$request->status}",
-        ])
-        ->response()
-        ->setStatusCode(200);
+        return (new StudentDetailResource($student))
+            ->additional([
+                'success' => true,
+                'message' => "Data siswa berhasil di {$request->status}",
+            ])
+            ->response()
+            ->setStatusCode(200);
     }
 
     public function destroy(Request $request, $id)
@@ -272,12 +264,12 @@ class StudentController extends Controller
     public function statistics()
     {
         $stats = [
-            'total' => Student::count(),
-            'draft' => Student::draft()->count(),
+            'total'     => Student::count(),
+            'draft'     => Student::draft()->count(),
             'submitted' => Student::submitted()->count(),
-            'verified' => Student::verified()->count(),
-            'accepted' => Student::accepted()->count(),
-            'by_path' => Student::select('registration_path', DB::raw('count(*) as total'))
+            'verified'  => Student::verified()->count(),
+            'accepted'  => Student::accepted()->count(),
+            'by_path'   => Student::select('registration_path', DB::raw('count(*) as total'))
                 ->groupBy('registration_path')->get(),
             'by_gender' => Student::select('gender', DB::raw('count(*) as total'))
                 ->groupBy('gender')->get(),
@@ -286,7 +278,7 @@ class StudentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Statistik pendaftaran berhasil diambil',
-            'data' => $stats
+            'data'    => $stats
         ]);
     }
 }

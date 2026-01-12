@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePaymentRequest;
 use App\Http\Resources\PaymentResource;
+use App\Http\Resources\PaymentItemResource;
+use App\Http\Resources\PaymentNotificationResource;
 use App\Models\Payment;
 use App\Models\PaymentItem;
 use App\Models\Student;
@@ -168,7 +170,7 @@ class PaymentController extends Controller
                 }
             });
 
-            return (new PaymentResource($payment->refresh()->load(['items', 'notifications'])))
+            return (new PaymentResource($payment->refresh()->load(['items'])))
                 ->additional([
                     'success' => true,
                     'message' => 'Status pembayaran berhasil disinkronkan'
@@ -201,7 +203,7 @@ class PaymentController extends Controller
                 'message' => 'Pembayaran dibatalkan'
             ]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Gagal membatalkan.'], 500);
+            return response()->json(['success' => false, 'message' => 'Gagal membatalkan.', 'error' => $e->getMessage()], 500);
         }
     }
 
@@ -216,6 +218,114 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             Log::error('Webhook Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Failed'], 500);
+        }
+    }
+
+    /**
+     * Summary payment for admin
+     */
+    public function summary(Request $request)
+    {
+        try {
+            // total pendapatan dari transaksi yang berhasil
+            $totalRevenue = Payment::where('status', 'success')->sum('total_amount');
+
+            // jumlah transaksi berdasarkan status
+            $statusCounts = Payment::select('status', DB::raw('count(*) as total'))
+                ->groupBy('status')
+                ->get()
+                ->pluck('total', 'status');
+
+        $payments = Payment::where('status', 'success')
+                    ->where('created_at', '>=', now()->subMonths(6))
+                    ->get();
+
+        $monthlyGraphic = $payments->groupBy(function($date) {
+                return \Carbon\Carbon::parse($date->created_at)->format('F Y');
+                })
+                ->map(function ($month) {
+                    return [
+                        'month' => $month->first()->created_at->format('F Y'),
+                        'amount' => $month->sum('total_amount'),
+                    ];
+                })->values();
+
+            $stats = [
+                'overview' => [
+                    'total_revenue'    => (float) $totalRevenue,
+                    'total_transactions' => Payment::count(),
+                    'success_count'    => $statusCounts->get('success', 0),
+                    'pending_count'    => $statusCounts->get('pending', 0),
+                    'expired_or_cancel' => $statusCounts->get('expire', 0) + $statusCounts->get('cancel', 0),
+                ],
+                'monthly_revenue' => $monthlyGraphic,
+                'recent_payments' => PaymentResource::collection(
+                    Payment::with('student:id,full_name')
+                        ->latest()
+                        ->take(5)
+                        ->get()
+                )
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Statistik pembayaran global berhasil diambil',
+                'data'    => $stats
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil ringkasan pembayaran',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    /**
+     * Refund payment (Admin Only)
+     */
+    public function refund(Request $request, $id)
+    {
+        
+        // 1. Cari data pembayaran
+        $payment = Payment::findOrFail($id);
+        // return response()->json($payment);
+
+        // 2. Cek apakah status TIDAK ADA di dalam daftar yang diizinkan
+        if (!in_array($payment->status, ['settlement', 'capture'])) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Hanya pembayaran dengan status sukses yang dapat di-refund.'
+            ], 400);
+        }
+        try {
+            // 3. Panggil service Midtrans untuk refund
+            $reason = $request->reason;
+            
+            $midtransResponse = $this->midtransService->refund($payment->order_id, [
+                'reason' => $reason
+            ]);
+
+            // 4. Update status di database lokal
+            $payment->update([
+                'status' => 'refund',
+                'notes' => $reason
+            ]);
+
+            return (new PaymentResource($payment))->additional([
+                'success' => true,
+                'message' => 'Pembayaran berhasil di-refund',
+                'midtrans_info' => $midtransResponse
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Gagal memproses refund ke Midtrans.', 
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 

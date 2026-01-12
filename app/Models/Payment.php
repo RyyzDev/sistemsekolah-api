@@ -78,7 +78,7 @@ class Payment extends Model
     }
 
     // Helper Methods
-    public function generateOrderId()
+    public static function generateOrderId()
     {
         $prefix = 'ORD';
         $date = date('Ymd');

@@ -17,7 +17,7 @@ class PaymentNotificationResource extends JsonResource
             'transaction_status' => $this->transaction_status,
             'fraud_status' => $this->fraud_status,
             
-            // Cast Model Array
+            // Casting model
             'notification_body' => $this->notification_body, 
             'notification_at' => $this->notification_at,
             'created_at' => $this->created_at,

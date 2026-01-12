@@ -43,7 +43,7 @@ class AchievementController extends Controller
         $validator = Validator::make($request->all(), [
             'achievement_name' => 'required|string|max:255',
             'achievement_type' => 'required|in:akademik,non_akademik,organisasi,olahraga,seni,lainnya',
-            'level' => 'required|in:sekolah,kecamatan,kabupaten,provinsi,nasional,internasional',
+            'level' => 'required|in:sekolah,kecamatan,kota,kabupaten,provinsi,nasional,internasional',
             'rank' => 'required|in:juara_1,juara_2,juara_3,finalis,peserta',
             'organizer' => 'required|string|max:255',
             'achievement_date' => 'required|date',
