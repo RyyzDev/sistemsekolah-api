@@ -211,7 +211,7 @@ class StudentController extends Controller
 
     public function verify(Request $request, $id)
     {
-        $student = Student::findOrFail($id);
+        $student = Student::with('user')->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:verified,accepted,rejected'
@@ -225,8 +225,17 @@ class StudentController extends Controller
             ], 422);
         }
 
+        DB::beginTransaction();
+        try {
         $student->update(['status' => $request->status]);
 
+        if ($request->status === 'accepted') {
+            $student->user->update([
+                'role' => 'student'
+            ]);
+        }
+
+        DB::commit();
         return (new StudentDetailResource($student))
             ->additional([
                 'success' => true,
@@ -234,6 +243,15 @@ class StudentController extends Controller
             ])
             ->response()
             ->setStatusCode(200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => "Data Siswa gagal di {$request->status}",
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function destroy(Request $request, $id)
