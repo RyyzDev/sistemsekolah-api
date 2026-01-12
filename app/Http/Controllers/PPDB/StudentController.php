@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\PPDB;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
@@ -14,38 +14,7 @@ use App\Http\Resources\StudentDetailResource;
 
 class StudentController extends Controller
 {
-    public function index(Request $request)
-    {
-        $query = Student::with(['user', 'parents', 'achievements', 'documents']);
-
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('registration_path')) {
-            $query->where('registration_path', $request->registration_path);
-        }
-
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('full_name', 'like', "%{$search}%")
-                  ->orWhere('nik', 'like', "%{$search}%")
-                  ->orWhere('registration_number', 'like', "%{$search}%");
-            });
-        }
-
-        $students = $query->paginate($request->get('per_page', 15));
-
-        return StudentResource::collection($students)
-            ->additional([
-                'success' => true,
-                'message' => 'Data siswa berhasil diambil',
-            ])
-            ->response()
-            ->setStatusCode(200);
-    
-    }
+   
 
     public function me(Request $request)
     {
@@ -209,50 +178,7 @@ class StudentController extends Controller
             ->setStatusCode(200);
     }
 
-    public function verify(Request $request, $id)
-    {
-        $student = Student::with('user')->findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'status' => 'required|in:verified,accepted,rejected'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors'  => $validator->errors()
-            ], 422);
-        }
-
-        DB::beginTransaction();
-        try {
-        $student->update(['status' => $request->status]);
-
-        if ($request->status === 'accepted') {
-            $student->user->update([
-                'role' => 'student'
-            ]);
-        }
-
-        DB::commit();
-        return (new StudentDetailResource($student))
-            ->additional([
-                'success' => true,
-                'message' => "Data siswa berhasil di {$request->status}",
-            ])
-            ->response()
-            ->setStatusCode(200);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => "Data Siswa gagal di {$request->status}",
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
+   
 
     public function destroy(Request $request, $id)
     {
@@ -279,24 +205,5 @@ class StudentController extends Controller
         ]);
     }
 
-    public function statistics()
-    {
-        $stats = [
-            'total'     => Student::count(),
-            'draft'     => Student::draft()->count(),
-            'submitted' => Student::submitted()->count(),
-            'verified'  => Student::verified()->count(),
-            'accepted'  => Student::accepted()->count(),
-            'by_path'   => Student::select('registration_path', DB::raw('count(*) as total'))
-                ->groupBy('registration_path')->get(),
-            'by_gender' => Student::select('gender', DB::raw('count(*) as total'))
-                ->groupBy('gender')->get(),
-        ];
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Statistik pendaftaran berhasil diambil',
-            'data'    => $stats
-        ]);
-    }
+   
 }

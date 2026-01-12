@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\PPDB;
 
 use App\Http\Controllers\Controller;
 use App\Models\Document;
@@ -174,20 +174,7 @@ class DocumentController extends Controller
         ]);
     }
 
-    public function verify(Request $request, $studentId, $documentId)
-    {
-        $document = Document::where('id', $documentId)
-            ->where('student_id', $studentId)
-            ->firstOrFail();
-
-        $document->verify($request->user()->name);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Dokumen berhasil diverifikasi',
-            'data' => $document
-        ]);
-    }
+  
 
     public function download($studentId, $documentId)
     {

@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Daftarkan subfolder migrations agar terbaca otomatis
+        $mainPath = database_path('migrations');
+        $paths = array_merge([$mainPath], glob($mainPath . '/*', GLOB_ONLYDIR));
+
+        $this->loadMigrationsFrom($paths);
     }
 }

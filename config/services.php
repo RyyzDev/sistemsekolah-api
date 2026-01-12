@@ -41,4 +41,9 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_APPLICANT'), // URL callback khusus calon murid
     ],
 
+    'whatsapp' => [
+        'url' => env('WHATSAPP_API_URL', 'https://api.fonnte.com/send'),
+        'key' => env('WHATSAPP_API_KEY', ''),
+    ],
+
 ];

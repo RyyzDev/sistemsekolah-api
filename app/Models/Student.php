@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Student extends Model
 {
@@ -124,6 +127,33 @@ class Student extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function classrooms(): BelongsToMany
+    {
+        return $this->belongsToMany(Classroom::class, 'student_classroom')
+            ->withPivot('semester_id', 'is_active')
+            ->withTimestamps();
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
+    public function grades(): HasMany
+    {
+        return $this->hasMany(Grade::class);
+    }
+
+    public function getCurrentClassroom(?int $semesterId = null): ?Classroom
+    {
+        $semesterId = $semesterId ?? Semester::getActive()?->id;
+        
+        return $this->classrooms()
+            ->wherePivot('semester_id', $semesterId)
+            ->wherePivot('is_active', true)
+            ->first();
     }
 
     public function getAgeAttribute()
